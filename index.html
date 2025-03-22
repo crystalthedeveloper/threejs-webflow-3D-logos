@@ -2,22 +2,20 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Three.js Webflow Logos - Click to Open Section</title>
-
-    <!-- Include Three.js and essential modules from CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/RGBELoader.js"></script>
-
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
     <style>
         body {
             margin: 0;
             overflow: hidden;
             cursor: default;
-            background: linear-gradient(180deg, #0a0a0a, #1a1a1a, #000000);
+            background-color: #ccc;
         }
 
         canvas {
@@ -27,100 +25,115 @@
 </head>
 
 <body>
+    <div id="tooltip" style="
+  position: absolute;
+  padding: 6px 12px;
+  background: rgba(0,0,0,0.7);
+  color: white;
+  border-radius: 4px;
+  font-family: sans-serif;
+  font-size: 14px;
+  pointer-events: none;
+  display: none;
+  z-index: 10;
+"></div>
+
     <script>
-        // Setup Three.js Scene
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 50, 250); // Adjusted closer for better logo visibility
+        camera.position.set(0, 100, 300);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 1.8;
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         document.body.appendChild(renderer.domElement);
 
-        // Load HDRI Environment for Realistic Reflections
+        scene.background = new THREE.Color('#d3d3d3');
+
         const rgbeLoader = new THREE.RGBELoader();
-        rgbeLoader.load('https://threejs.org/examples/textures/equirectangular/royal_esplanade_1k.hdr', function (texture) {
+        rgbeLoader.load('https://threejs.org/examples/textures/equirectangular/royal_esplanade_1k.hdr', (texture) => {
             texture.mapping = THREE.EquirectangularReflectionMapping;
             scene.environment = texture;
-            renderer.render(scene, camera);
         });
 
-        // Orbit Controls
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.minDistance = 100;
         controls.maxDistance = 500;
+        controls.maxPolarAngle = Math.PI / 2.1;
 
-        // Lighting for Better Logo Visibility
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-        scene.add(ambientLight);
+        scene.add(new THREE.AmbientLight(0xffffff, 0.6));
 
         const directionalLight = new THREE.DirectionalLight(0xffffff, 2.0);
         directionalLight.position.set(0, 150, 100);
+        directionalLight.castShadow = true;
+        directionalLight.shadow.mapSize.width = 2048;
+        directionalLight.shadow.mapSize.height = 2048;
+        directionalLight.shadow.camera.near = 1;
+        directionalLight.shadow.camera.far = 500;
+        directionalLight.shadow.camera.left = -300;
+        directionalLight.shadow.camera.right = 300;
+        directionalLight.shadow.camera.top = 300;
+        directionalLight.shadow.camera.bottom = -300;
         scene.add(directionalLight);
 
-        // Sections array for interaction
-        const sections = [
-            "hello", "about", "section3", "section4", "section5",
-            "section6", "section7", "section8", "section9", "section10", "section11", "section12"
-        ];
+        const floor = new THREE.Mesh(
+            new THREE.BoxGeometry(2000, 0.1, 2000),
+            new THREE.MeshStandardMaterial({ color: 0xd3d3d3, roughness: 0.8, metalness: 0.2 })
+        );
+        floor.receiveShadow = true;
+        scene.add(floor);
 
-        // Function to Generate Well-Spaced Positions Within Camera View
-        function generateLogoPositions() {
+        const sections = ["hello", "about", "services", "developer-designer", "cms","certification", "clown-hunt", "leaderboard", "unreal", "hoodie", "testimonials", "contact"];
+
+        function generateLogoPositions(count) {
             const positions = [];
-            const cols = 4; // 3 columns
-            const rows = 3; // 4 rows
-            const spacingX = 80; // Space between columns
-            const spacingY = 60; // Space between rows
-            const startX = -((cols - 1) * spacingX) / 2;
-            const startY = 50; // Adjusted for better centering
-            const startZ = 30; // Keep logos within the camera view
+            const columns = Math.ceil(Math.sqrt(count));
+            const spacing = 150;
+            const startX = -((columns - 1) * spacing) / 2;
+            const startZ = -((columns - 1) * spacing) / 2;
 
-            for (let row = 0; row < rows; row++) {
-                for (let col = 0; col < cols; col++) {
-                    let index = row * cols + col;
-                    if (index >= sections.length) break;
-
-                    let x = startX + col * spacingX;
-                    let y = startY - row * spacingY;
-                    let z = startZ;
-
-                    positions.push([x, y, z]);
-                }
+            for (let i = 0; i < count; i++) {
+                const row = Math.floor(i / columns);
+                const col = i % columns;
+                const x = startX + col * spacing;
+                const y = 80;
+                const z = startZ + row * spacing;
+                positions.push([x, y, z]);
             }
+
             return positions;
         }
 
-
-        // Load Logos
+        const dracoLoader = new THREE.DRACOLoader();
+        dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/draco/');
         const loader = new THREE.GLTFLoader();
+        loader.setDRACOLoader(dracoLoader);
+
         let logos = [];
 
         function loadLogos() {
             loader.load('logos.glb', (gltf) => {
                 const originalModel = gltf.scene;
-                originalModel.scale.set(80, 80, 120); // Slightly reduced scale to fit more logos
-                let positions = generateLogoPositions();
-                let colors = [
-                    0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0xff00ff, 0x00ffff,
-                    0xff6600, 0x33ff33, 0x9900cc, 0xffcc00, 0x0099ff
-                ]; // Unique colors for all 11 logos
+                originalModel.scale.set(90, 90, 140);
+                const positions = generateLogoPositions(sections.length);
+                const colors = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0xff00ff, 0x00ffff, 0xff6600, 0x33ff33, 0x9900cc, 0xffcc00, 0x0099ff];
 
                 for (let i = 0; i < sections.length; i++) {
-                    const modelClone = originalModel.clone();
-                    modelClone.position.set(...positions[i]);
-                    modelClone.userData.sectionId = sections[i]; // Attach section ID
-                    logos.push(modelClone);
-                    scene.add(modelClone);
+                    const logoClone = originalModel.clone();
+                    const [x, y, z] = positions[i];
+                    logoClone.position.set(x, y, z);
+                    logoClone.userData.sectionId = sections[i];
+                    logos.push(logoClone);
+                    scene.add(logoClone);
 
-                    // Apply material to logos
-                    modelClone.traverse((child) => {
+                    logoClone.traverse((child) => {
                         if (child.isMesh) {
+                            child.castShadow = true;
                             child.material = new THREE.MeshPhysicalMaterial({
-                                color: colors[i], // Unique colors
+                                color: colors[i % colors.length],
                                 metalness: 0.9,
                                 roughness: 0.2,
                                 clearcoat: 1.0,
@@ -129,15 +142,42 @@
                             });
                         }
                     });
-                }
 
-                renderer.render(scene, camera);
+                    loader.load('clownV.glb', (clownGltf) => {
+                        const clown = clownGltf.scene;
+                        clown.scale.set(30, 30, 30);
+                        clown.position.set(x, y - 60, z - 16);
+                        scene.add(clown);
+
+                        clown.traverse((child) => {
+                            if (child.isMesh) {
+                                child.castShadow = true;
+                                child.frustumCulled = false;
+                                if (child.material && child.material.isMeshStandardMaterial) {
+                                    child.material.roughness = 0.6;
+                                    child.material.metalness = 0.2;
+                                }
+                            }
+                        });
+
+                        if (clownGltf.animations.length > 0) {
+                            const mixer = new THREE.AnimationMixer(clown);
+                            const clip = clownGltf.animations[0];
+                            const action = mixer.clipAction(clip);
+                            action.play();
+                            action.paused = true;
+                            action.time = 0;
+                            action.timeScale = 0;
+                            action.setLoop(THREE.LoopOnce);
+                            mixer.update(0);
+                        }
+                    });
+                }
             });
         }
 
         loadLogos();
 
-        // Optimize animation loop
         function animate() {
             requestAnimationFrame(animate);
             controls.update();
@@ -145,44 +185,63 @@
         }
         animate();
 
-        // Clickable Logos to Open Sections
+        // ✅ Responsive Canvas
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // ✅ Interactions
         window.addEventListener("mousedown", (event) => {
             const mouse = new THREE.Vector2(
                 (event.clientX / window.innerWidth) * 2 - 1,
                 -(event.clientY / window.innerHeight) * 2 + 1
             );
-
             const raycaster = new THREE.Raycaster();
             raycaster.setFromCamera(mouse, camera);
             const intersects = raycaster.intersectObjects(logos, true);
 
             if (intersects.length > 0) {
-                let clickedLogo = intersects[0].object.parent;
-                let sectionId = clickedLogo.userData.sectionId;
-
+                const clickedLogo = intersects[0].object.parent;
+                const sectionId = clickedLogo.userData.sectionId;
                 if (sectionId) {
-                    let section = document.getElementById(sectionId);
-                    if (section) {
-                        section.style.display = section.style.display === "none" ? "block" : "none";
+                    const targetSection = document.getElementById(sectionId);
+                    if (targetSection) {
+                        targetSection.scrollIntoView({ behavior: "smooth" });
                     }
                 }
+
             }
         });
 
-        // Change cursor when hovering over a logo
+        const tooltip = document.getElementById('tooltip');
+
         window.addEventListener("mousemove", (event) => {
             const mouse = new THREE.Vector2(
                 (event.clientX / window.innerWidth) * 2 - 1,
                 -(event.clientY / window.innerHeight) * 2 + 1
             );
-
             const raycaster = new THREE.Raycaster();
             raycaster.setFromCamera(mouse, camera);
             const intersects = raycaster.intersectObjects(logos, true);
-
             document.body.style.cursor = intersects.length > 0 ? "pointer" : "default";
-        });
+            if (intersects.length > 0) {
+                const intersected = intersects[0].object;
+                const sectionId = intersected.parent?.userData?.sectionId;
 
+                if (sectionId) {
+                    tooltip.innerText = sectionId;
+                    tooltip.style.display = 'block';
+                    tooltip.style.left = `${event.clientX + 10}px`;
+                    tooltip.style.top = `${event.clientY + 10}px`;
+                }
+                document.body.style.cursor = 'pointer';
+            } else {
+                tooltip.style.display = 'none';
+                document.body.style.cursor = 'default';
+            }
+        });
     </script>
 </body>
 
